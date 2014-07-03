@@ -49,6 +49,15 @@ And finally, call the `cmake!` macro somewhere in the code:
 
 The argument of the macro is the location of the `CMakeLists.txt`.
 
+Now the C library will be built and will be available for the Rust compiler:
+
+```rust
+#[link(name="c_library")]
+extern {
+    ...
+}
+```
+
 How does it work?
 -----------------
 
