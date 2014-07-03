@@ -3,6 +3,12 @@ cmake-rs
 
 This library allows you to invoke **CMake** during the compilation of a Rust program or library. This is very useful when you want to link C or C++ libraries with your Rust libraries.
 
+It defines the `cmake!` macro which takes as parameter the path to `CMakeLists.txt`.
+
+```rust
+cmake!("path/to/cmakelists")
+```
+
 Example
 -------
 
