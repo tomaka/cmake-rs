@@ -52,13 +52,7 @@ fn macro_handler(ecx: &mut ExtCtxt, span: Span, token_tree: &[TokenTree]) -> Box
     }
 
     // getting the libraries output directory
-    let outputDir = match ::std::os::homedir() {
-        Some(d) => d.join(".cmake-rs-builds").join(ecx.ecfg.crate_id.name.clone()),
-        None => {
-            ecx.span_err(span, format!("unable to get your home directory").as_slice());
-            return DummyResult::any(span)
-        }
-    };
+    let outputDir = srcPath.join("cmake-build-result");
     if !outputDir.exists() {
         match ::std::io::fs::mkdir_recursive(&outputDir, ::std::io::UserRWX) {
             Ok(_) => (),
@@ -69,9 +63,17 @@ fn macro_handler(ecx: &mut ExtCtxt, span: Span, token_tree: &[TokenTree]) -> Box
         }
     }
 
+    // getting the generator
+    let (generatorCmake, generatorExec) = if cfg!(windows) {
+        ("MinGW Makefiles", "mingw32-make")
+    } else {
+        ("Makefiles", "make")
+    };
+
     // invoking CMake
     let cmakeProcess = match Command::new("cmake")
                                 .cwd(&buildDirectory)
+                                .args(&["-G", generatorCmake])
                                 .arg(format!("-DCMAKE_LIBRARY_OUTPUT_DIRECTORY:dir={}", outputDir.display()))
                                 .arg(format!("-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY:dir={}", outputDir.display()))
                                 .arg(format!("{}", srcPath.display()))
@@ -97,7 +99,7 @@ fn macro_handler(ecx: &mut ExtCtxt, span: Span, token_tree: &[TokenTree]) -> Box
     }
 
     // invoking make
-    let mut makeCommand = Command::new("make");
+    let mut makeCommand = Command::new(generatorExec);
     makeCommand.cwd(&buildDirectory);
     match &libname { &Some(ref l) => { makeCommand.arg(l.as_slice()); }, _ => () };
     let makeProcess = match makeCommand.spawn() {
@@ -123,8 +125,8 @@ fn macro_handler(ecx: &mut ExtCtxt, span: Span, token_tree: &[TokenTree]) -> Box
     // outputting the library name
     {
         let link = match &libname {
-            &Some(ref l) => format!("#[link_args = \"-L {}\"]\n#[link(name=\"{}\")]\nextern {{}}", outputDir.display(), l),
-            &None => format!("")
+            &Some(ref l) => format!("#[link_args = \"-L {}\"]\n#[link(name=\"{}\")]\nextern {{}}", outputDir.display().as_maybe_owned().escape_default().as_slice(), l),
+            &None => format!("#[link_args = \"-L {}\"]\nextern {{}}", outputDir.display().as_maybe_owned().escape_default().as_slice())
         };
         str_to_item(ecx, link.as_slice())
     }
@@ -134,7 +136,7 @@ fn str_to_item(ecx: &mut ExtCtxt, content: &str) -> Box<MacResult> {
     let mut parser = ::syntax::parse::new_parser_from_source_str(ecx.parse_sess(), ecx.cfg(), "".to_string(), content.to_string());
     
     match parser.parse_item_with_outer_attributes() {
-        None => fail!(),
+        None => fail!("unable to parse library output into items"),
         Some(i) => MacItem::new(i)
     }
 }
