@@ -1,0 +1,10 @@
+[package]
+
+name = "cmake"
+version = "0.1.0"
+authors = [ "pierre.krieger1708@gmail.com" ]
+
+[[lib]]
+
+name = "cmake"
+crate_type = ["dylib"]
