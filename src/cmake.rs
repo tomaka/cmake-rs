@@ -67,7 +67,7 @@ fn macro_handler(ecx: &mut ExtCtxt, span: Span, token_tree: &[TokenTree]) -> Box
     let (generatorCmake, generatorExec) = if cfg!(windows) {
         ("MinGW Makefiles", "mingw32-make")
     } else {
-        ("Makefiles", "make")
+        ("Unix Makefiles", "make")
     };
 
     // invoking CMake
